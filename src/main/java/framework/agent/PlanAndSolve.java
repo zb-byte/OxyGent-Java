@@ -124,6 +124,7 @@ public class PlanAndSolve implements Agent {
                     // 解析计划
                     Plan plan = PlanParser.parsePlan(planResponse.getOutput());
                     planSteps = plan.getSteps();
+                    //拼接计划步骤为字符串用于输出展示，格式为：1. 步骤1\n2. 步骤2\n3. 步骤3
                     planStr = formatPlanSteps(planSteps);
                     
                     System.out.println("  ✅ 计划生成成功: " + planStr);

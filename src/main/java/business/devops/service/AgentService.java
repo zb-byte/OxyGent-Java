@@ -60,13 +60,15 @@ public class AgentService {
          PlanAndSolve planAndSolveMaster = createPlanAndSolveMaster(llmClient);
          
         
-        // 4. 注册所有智能体
+        // 4. 注册编码需求的智能体
         framework.registerAgent("requirement_agent", requirementAgent);
         framework.registerAgent("restricted_requirement_agent", restrictedRequirementAgent);
         framework.registerAgent("code_agent", codeAgent);
+        framework.registerAgent("devops_master", masterAgent);
+
+        // 5.下面是演示 PlanAndSolve 流程所需要的智能体
         framework.registerAgent("planner_agent", plannerAgent);
         framework.registerAgent("executor_agent", executorAgent);
-        framework.registerAgent("devops_master", masterAgent);
         framework.registerAgent("plan_and_solve_master", planAndSolveMaster);
         
         System.out.println("✅ 所有智能体注册完成\n");

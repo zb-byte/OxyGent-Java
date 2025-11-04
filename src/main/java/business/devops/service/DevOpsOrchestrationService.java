@@ -151,7 +151,45 @@ public class DevOpsOrchestrationService {
     }
     
     /**
-     * 执行自定义任务
+     * 示例 3：使用 PlanAndSolve 流程执行任务
+     * 
+     * ⭐ PlanAndSolve 流程演示：
+     * - 先规划：调用 planner_agent 生成执行计划
+     * - 再执行：循环调用 executor_agent 执行每个步骤
+     * - 特点：预先规划，按计划执行，步骤清晰可追踪
+     * 
+     * 适用场景：
+     * - 多步骤、可分解的任务
+     * - 需要清晰的步骤追踪
+     * - 适合预先规划的场景
+     * 
+     * @param taskDescription 任务描述
+     * @return AgentResponse 执行结果
+     */
+    public AgentResponse executeTaskWithPlanAndSolve(String taskDescription) {
+        System.out.println("\n📋 使用 PlanAndSolve 流程执行任务...\n");
+        System.out.println("💡 PlanAndSolve 模式：先规划后执行（\"想好再干\"）\n");
+        
+        AgentRequest request = new AgentRequest(
+            taskDescription,
+            null,
+            "user",
+            "plan_and_solve_master"  // 使用 PlanAndSolve 流程主控智能体
+        );
+        
+        // 确保请求对象有框架引用
+        request.setFramework(framework);
+        
+        // 直接调用 PlanAndSolve 智能体
+        AgentResponse response = framework.getAgent("plan_and_solve_master")
+            .execute(request)
+            .join();
+        
+        return response;
+    }
+    
+    /**
+     * 执行自定义任务（使用 ReAct 模式）
      * 
      * @param taskDescription 任务描述
      * @return AgentResponse 执行结果
@@ -164,7 +202,7 @@ public class DevOpsOrchestrationService {
             "devops_master"
         );
         
-        System.out.println("\n📋 开始执行任务...\n");
+        System.out.println("\n📋 开始执行任务（ReAct 模式）...\n");
         CompletableFuture<AgentResponse> future = framework.chatWithMaster(request);
         AgentResponse response = future.join();
         

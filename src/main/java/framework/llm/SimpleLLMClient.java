@@ -75,7 +75,7 @@ public class SimpleLLMClient implements LLMClient {
             } else if (hasRequirementAnalysis && !hasCodeWriting) {
                 return "{\"type\": \"tool_call\", \"tool_name\": \"code_agent\", \"arguments\": {\"query\": \"根据需求分析报告编写代码\"}}";
             } else if (hasCodeWriting && !hasCodeReview) {
-                return "{\"type\": \"tool_call\", \"tool_name\": \"review_agent\", \"arguments\": {\"query\": \"审查代码质量\"}}";
+                return "{\"type\": \"answer\", \"tool_name\": \"review_agent\", \"arguments\": {\"query\": \"审查代码质量\"}}";
             } else if (hasCodeReview && !hasTest) {
                 return "{\"type\": \"tool_call\", \"tool_name\": \"test_agent\", \"arguments\": {\"query\": \"编写和执行测试用例\"}}";
             } else if (hasTest && !hasGitCommit) {
