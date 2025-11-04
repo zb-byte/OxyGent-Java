@@ -296,10 +296,15 @@ public class AgentRequest {
         cloned.parallelDict = this.parallelDict;
         cloned.preNodeIds = new ArrayList<>(this.latestNodeIds);
         
-        // 更新参数
-        cloned.arguments = new HashMap<>(this.arguments);
-        if (newArguments != null) {
-            cloned.arguments.putAll(newArguments);
+        // Python 版本保持一致：完全替换，不是合并
+        // Python 版本：clone_with(arguments={"x": 1}) 会完全替换 arguments，不是合并
+        // 如果传入了 newArguments，则完全替换；否则复制原有参数
+        if (newArguments != null && !newArguments.isEmpty()) {
+            // 完全替换：与 Python 版本的 setattr() 行为一致
+            cloned.arguments = new HashMap<>(newArguments);
+        } else {
+            // 未传入新参数时，复制原有参数
+            cloned.arguments = new HashMap<>(this.arguments);
         }
         
         // 复制其他字段
