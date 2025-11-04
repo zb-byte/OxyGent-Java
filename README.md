@@ -187,6 +187,17 @@ IllegalArgumentException: DeepSeek API Key未设置
 java -version  # 应该显示 21.x
 ```
 
+## 📚 文档
+
+详细文档请查看 [docs/](./docs/) 目录：
+
+- **[文档索引](./docs/README.md)** - 所有文档的索引
+- **[业务开发指南](./docs/BUSINESS_DEVELOPMENT_GUIDE.md)** - 如何开发新业务
+- **[启动顺序说明](./docs/STARTUP_SEQUENCE.md)** - 应用启动加载顺序
+- **[A2A 核心思路对比](./docs/A2A_CORE_COMPARISON.md)** - 与 Python 版本的对比
+- **[MCP 工具使用指南](./docs/MCP_USAGE_GUIDE.md)** - MCP 工具使用说明
+- **[远程智能体使用指南](./docs/REMOTE_AGENT_USAGE.md)** - 远程调用使用说明
+
 ## 更多信息
 
 - DeepSeek API 文档: https://platform.deepseek.com/api-docs

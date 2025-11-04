@@ -2,6 +2,7 @@ package business.devops.service;
 
 import framework.agent.AgentFramework;
 import framework.agent.ReActAgent;
+import framework.agent.SSEOxyGent;
 import framework.llm.LLMClient;
 import framework.tool.MCPClient;
 import framework.tool.MCPTool;
@@ -28,7 +29,7 @@ public class AgentService {
     }
     
     /**
-     * 初始化所有智能体
+     * 初始化DevOps业务需要的所有智能体和工具
      */
     private void initializeAgents() {
         LLMClient llmClient = llmClientService.getLLMClient();
@@ -38,7 +39,8 @@ public class AgentService {
         
         // 2. 创建DevOps业务所需要的子智能体（简化演示：只保留核心智能体）
         ReActAgent requirementAgent = createRequirementAgent(llmClient);
-        ReActAgent codeAgent = createCodeAgent(llmClient);
+        // 2.1 创建编码智能体: 通过 SSE 协议调用远程服务
+        SSEOxyGent codeAgent = createCodeAgent(llmClient);
         
         // 3. 创建主控智能体
         ReActAgent masterAgent = createMasterAgent(llmClient);
@@ -58,15 +60,14 @@ public class AgentService {
      */
     private void initializeMCPTools() {
         try {
-            // 示例：文件系统工具（需要 Node.js 环境）
-            // 注意：实际使用时需要确保 Node.js 和 MCP 服务器已安装
+            // 示例：文件系统工具
             Map<String, Object> fileToolsParams = new HashMap<>();
-            fileToolsParams.put("command", "npx");
-            fileToolsParams.put("args", Arrays.asList(
-                "-y", 
-                "@modelcontextprotocol/server-filesystem", 
-                "./local_file"
-            ));
+            // fileToolsParams.put("command", "npx");
+            // fileToolsParams.put("args", Arrays.asList(
+            //     "-y", 
+            //     "@modelcontextprotocol/server-filesystem", 
+            //     "./local_file"
+            // ));
             
             StdioMCPClient fileToolsClient = new StdioMCPClient(
                 "file_tools",
@@ -97,9 +98,9 @@ public class AgentService {
     }
     
     /**
-     * 创建需求分析智能体
+     * 示例：创建需求分析智能体
      * 
-     * ⭐ 业务逻辑：可以添加 MCP 工具（如 wiki_tools）用于读取需求文档
+     *业务逻辑：可以添加 MCP 工具（如 wiki_tools）用于读取需求文档
      */
     private ReActAgent createRequirementAgent(LLMClient llmClient) {
         // 检查是否有 MCP 工具可用
@@ -130,16 +131,11 @@ public class AgentService {
     /**
      * 创建代码编写智能体
      */
-    private ReActAgent createCodeAgent(LLMClient llmClient) {
-        return new ReActAgent(
+    private SSEOxyGent createCodeAgent(LLMClient llmClient) {
+        return new SSEOxyGent(
             "code_agent",
-            "代码编写智能体",
-            false,
-            llmClient,
-            null,
-            null,
-            "你是代码编写专家。根据需求分析报告编写高质量的代码。",
-            5
+            "编码智能体",
+            "http://www.codeagent.com"  // 远程服务器地址
         );
     }
     

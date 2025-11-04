@@ -29,16 +29,15 @@ public class DevOpsOrchestrationService {
     }
     
     /**
-     * 执行完整的DevOps流程
-     * 
-     * ⭐ 业务逻辑：可以在这里添加 MCP 工具调用示例
+     * 示例 1：执行完整的DevOps流程，简化演示版本     * 
+     * 业务逻辑：可以在这里添加 MCP 工具调用示例
      * 
      * @param requirementId 需求ID或URL
      * @param environment 部署环境（如：staging, production）
      * @return AgentResponse 执行结果
      */
     public AgentResponse executeDevOpsWorkflow(String requirementId, String environment) {
-        // ⭐ 业务逻辑：可以在这里直接调用 MCP 工具（如果需要）
+        // 业务逻辑：可以在这里直接调用 MCP 工具（如果需要）
         // 示例：如果需要在流程开始前调用 MCP 工具
         if (framework.hasTool("read_file")) {
             System.out.println("📂 使用 MCP 工具读取需求文档...");
@@ -63,9 +62,9 @@ public class DevOpsOrchestrationService {
     }
     
     /**
-     * 执行带 MCP 工具调用的 DevOps 流程示例
+     * 示例 2：执行带 MCP 工具调用的 DevOps 流程示例
      * 
-     * ⭐ 业务逻辑：演示如何在业务流程中使用 MCP 工具
+     * 业务逻辑：演示如何在业务流程中使用 MCP 工具
      * 
      * @param requirementId 需求ID
      * @param environment 部署环境
@@ -74,9 +73,9 @@ public class DevOpsOrchestrationService {
     public AgentResponse executeDevOpsWorkflowWithMCP(String requirementId, String environment) {
         System.out.println("\n📋 执行 DevOps 流程（使用 MCP 工具）...\n");
         
-        // ⭐ 业务逻辑示例：在流程中直接调用 MCP 工具
+        // 业务逻辑示例：在流程中直接调用 MCP 工具
         try {
-            // 示例1: 使用 MCP 文件工具读取需求文档
+            // 示例1: 直接代码中使用 MCP 文件工具读取需求文档
             if (framework.hasTool("read_file")) {
                 System.out.println("📂 步骤1: 使用 MCP 文件工具读取需求文档");
                 
