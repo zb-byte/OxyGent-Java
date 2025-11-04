@@ -46,8 +46,8 @@ public class AgentService {
         // ⭐ 权限控制示例：限制智能体只能调用特定的工具或子智能体
         ReActAgent restrictedRequirementAgent = createRestrictedRequirementAgent(llmClient);
 
-        // 2.3 创建编码智能体: 通过 SSE 协议调用远程服务
-        SSEOxyGent codeAgent = createCodeAgent();
+        // 2.3 创建编码智能体
+        ReActAgent codeAgent = createCodeAgent(llmClient);
         
         // 3. 创建主控智能体
         ReActAgent masterAgent = createMasterAgent(llmClient);
@@ -227,16 +227,32 @@ public class AgentService {
         };
     }
     
-    /**
+    // /**
+    //  * 远程 SSE 方式：创建代码编写智能体
+    //  */
+    // private SSEOxyGent createCodeAgent() {
+    //     return new SSEOxyGent(
+    //         "code_agent",
+    //         "编码智能体",
+    //         "http://www.codeagent.com"  // 远程服务器地址
+    //     );
+    // }
+     /**
      * 远程 SSE 方式：创建代码编写智能体
      */
-    private SSEOxyGent createCodeAgent() {
-        return new SSEOxyGent(
+    private ReActAgent createCodeAgent(LLMClient llmClient) {
+         return new ReActAgent(
             "code_agent",
-            "编码智能体",
-            "http://www.codeagent.com"  // 远程服务器地址
-        );
+            "创建代码编写智能体",
+            false,
+            llmClient,
+            null,  // 不允许调用子智能体
+            null,
+            null,
+            5
+      );
     }
+   
     
     /**
      * 创建主控智能体（简化演示版本）

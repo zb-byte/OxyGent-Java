@@ -19,7 +19,7 @@ public class AgentResponse {
         通过响应可追溯到产生它的请求
         在链式调用中，可追溯完整的调用链
      */
-    private AgentRequest request;  /
+    private AgentRequest request;  
     
     public AgentResponse(AgentState state, String output, Map<String, Object> extra, AgentRequest request) {
         this.state = state;
