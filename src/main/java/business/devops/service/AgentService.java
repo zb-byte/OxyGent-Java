@@ -1,8 +1,8 @@
 package business.devops.service;
 
 import framework.agent.AgentFramework;
+import framework.agent.PlanAndSolve;
 import framework.agent.ReActAgent;
-import framework.agent.SSEOxyGent;
 import framework.llm.LLMClient;
 import framework.tool.MCPClient;
 import framework.tool.MCPTool;
@@ -48,15 +48,26 @@ public class AgentService {
 
         // 2.3 创建编码智能体
         ReActAgent codeAgent = createCodeAgent(llmClient);
-        
-        // 3. 创建主控智能体
+
+        // 3. 创建编码需求的主控智能体（ReAct 模式）
         ReActAgent masterAgent = createMasterAgent(llmClient);
+    
+        //--------------以下是演示 PlanAndSolve 流程所需要的智能体------------------
+         // 创建 PlanAndSolve 流程所需的智能体（演示）
+         ReActAgent plannerAgent = createPlannerAgent(llmClient);
+         ReActAgent executorAgent = createExecutorAgent(llmClient);
+         // 创建 PlanAndSolve 流程主控智能体（演示）
+         PlanAndSolve planAndSolveMaster = createPlanAndSolveMaster(llmClient);
+         
         
         // 4. 注册所有智能体
         framework.registerAgent("requirement_agent", requirementAgent);
         framework.registerAgent("restricted_requirement_agent", restrictedRequirementAgent);
         framework.registerAgent("code_agent", codeAgent);
+        framework.registerAgent("planner_agent", plannerAgent);
+        framework.registerAgent("executor_agent", executorAgent);
         framework.registerAgent("devops_master", masterAgent);
+        framework.registerAgent("plan_and_solve_master", planAndSolveMaster);
         
         System.out.println("✅ 所有智能体注册完成\n");
     }
@@ -248,7 +259,7 @@ public class AgentService {
             llmClient,
             null,  // 不允许调用子智能体
             null,
-            null,
+            "你是代码编写专家。根据需求分析报告，编写代码文件和实现方案。",
             5
       );
     }
@@ -304,6 +315,114 @@ public class AgentService {
             availableTools.isEmpty() ? null : availableTools,
             workflowPrompt,
             10
+        );
+    }
+    
+    /**
+     * 示例：创建规划者智能体（用于 PlanAndSolve 流程）
+     * 
+     * 规划者负责将复杂任务分解为可执行的步骤列表
+     */
+    private ReActAgent createPlannerAgent(LLMClient llmClient) {
+        String plannerPrompt = """
+            你是一个计划制定专家，负责将复杂任务分解为可执行的步骤。
+            
+            对于给定的目标，创建一个简单且可逐步执行的计划。
+            计划应该简洁，每个步骤应该是一个独立的、完整的功能模块。
+            确保每个步骤都是可执行的，并且包含所有必要的信息。
+            最后一步的结果应该是最终答案。
+            
+            输出格式：
+            1. 步骤1的描述
+            2. 步骤2的描述
+            3. 步骤3的描述
+            
+            或者 JSON 格式：
+            {"steps": ["步骤1", "步骤2", "步骤3"]}
+            """;
+        
+        return new ReActAgent(
+            "planner_agent",
+            "规划者智能体（负责制定执行计划）",
+            false,
+            llmClient,
+            null,  // 规划者不需要调用子智能体
+            null,  // 规划者不需要工具
+            plannerPrompt,
+            5
+        );
+    }
+    
+    /**
+     * 示例：创建执行者智能体（用于 PlanAndSolve 流程）
+     * 
+     * 执行者负责执行计划中的每个步骤，通常是一个 ReActAgent
+     */
+    private ReActAgent createExecutorAgent(LLMClient llmClient) {
+        // 收集可用的工具和子智能体
+        List<String> availableTools = new ArrayList<>();
+        for (String toolName : framework.getAllTools()) {
+            availableTools.add(toolName);
+        }
+        
+        String executorPrompt = """
+            你是一个执行助手，负责执行计划中的单个步骤。
+            
+            重要提示：
+            1. 你只需要完成计划中的**当前步骤**，不要做额外的事情
+            2. 严格按照当前步骤的要求响应
+            3. 如果需要工具，从可用工具列表中选择
+            4. 如果不需要工具，直接回答——不要输出其他内容
+            5. 每次只调用一个工具，不要连续调用多个工具
+            
+            可用工具：
+            ${tools_description}
+            
+            可用子智能体：
+            ${sub_agents_description}
+            """;
+        
+        return new ReActAgent(
+            "executor_agent",
+            "执行者智能体（负责执行计划中的每个步骤）",
+            false,
+            llmClient,
+            Arrays.asList("requirement_agent", "code_agent"),  // 可以调用子智能体
+            availableTools.isEmpty() ? null : availableTools,  // 可以使用工具
+            executorPrompt,
+            10  // 每个步骤最多执行 10 轮 ReAct 循环
+        );
+    }
+    
+    /**
+     * 示例：创建 PlanAndSolve 流程主控智能体
+     * 
+     * ⭐ PlanAndSolve 流程演示：
+     * 1. 规划阶段：调用 planner_agent 生成执行计划
+     * 2. 执行阶段：循环调用 executor_agent 执行每个步骤
+     * 3. 重规划阶段（可选）：根据执行结果调整计划
+     * 
+     * 适用场景：
+     * - 多步骤、可分解的任务
+     * - 需要清晰的步骤追踪
+     * - 适合预先规划的场景
+     * 
+     * 与 ReActAgent 的区别：
+     * - PlanAndSolve：先规划后执行（"想好再干"）
+     * - ReActAgent：边推理边执行（"边想边干"）
+     */
+    private PlanAndSolve createPlanAndSolveMaster(LLMClient llmClient) {
+        return new PlanAndSolve(
+            "plan_and_solve_master",
+            "PlanAndSolve 流程主控智能体（演示）",
+            true,  // 主控智能体
+            "planner_agent",  // 规划者 Agent 名称
+            "executor_agent",  // 执行者 Agent 名称
+            false,  // 不启用重规划（简化演示）
+            null,  // 重规划者名称（未启用）
+            30,  // 最大重规划轮次
+            null,  // 预设计划步骤（null 表示需要动态规划）
+            llmClient  // LLM 客户端（用于备用调用）
         );
     }
     

@@ -170,7 +170,9 @@ public class ReActAgent implements Agent {
      * 构建系统提示（包含流程描述和可用工具列表）
      */
     private String buildSystemPrompt() {
-        StringBuilder prompt = new StringBuilder(systemPrompt);
+        // 处理 systemPrompt 为 null 的情况
+        String basePrompt = systemPrompt != null ? systemPrompt : "你是一个有用的助手。";
+        StringBuilder prompt = new StringBuilder(basePrompt);
         
         // 添加可用工具列表
         if (!subAgents.isEmpty() || !tools.isEmpty()) {
