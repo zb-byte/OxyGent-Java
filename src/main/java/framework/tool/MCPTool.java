@@ -2,8 +2,6 @@ package framework.tool;
 
 import framework.model.AgentRequest;
 import framework.model.AgentResponse;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -27,8 +25,8 @@ public class MCPTool implements Tool {
     
     @Override
     public CompletableFuture<AgentResponse> execute(AgentRequest request) {
-        // 委托给 MCP 客户端执行
-        return mcpClient.callTool(name, request.getArguments());
+        // 委托给 MCP 客户端执行（传递 request 对象以使用新版本构造函数）
+        return mcpClient.callTool(name, request.getArguments(), request);
     }
     
     @Override

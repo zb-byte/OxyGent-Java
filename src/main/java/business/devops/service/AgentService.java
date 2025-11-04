@@ -37,9 +37,16 @@ public class AgentService {
         initializeMCPTools();
         
         // 2. 创建DevOps业务所需要的子智能体
+
+        // 2.1 创建需求分析智能体,使用 ReActAgent 实现
         LLMClient llmClient = llmClientService.getLLMClient();
         ReActAgent requirementAgent = createRequirementAgent(llmClient);
-        // 2.1 创建编码智能体: 通过 SSE 协议调用远程服务
+
+        // 2.2 创建带权限控制的需求分析智能体（权限演示）
+        // ⭐ 权限控制示例：限制智能体只能调用特定的工具或子智能体
+        ReActAgent restrictedRequirementAgent = createRestrictedRequirementAgent(llmClient);
+
+        // 2.3 创建编码智能体: 通过 SSE 协议调用远程服务
         SSEOxyGent codeAgent = createCodeAgent();
         
         // 3. 创建主控智能体
@@ -47,6 +54,7 @@ public class AgentService {
         
         // 4. 注册所有智能体
         framework.registerAgent("requirement_agent", requirementAgent);
+        framework.registerAgent("restricted_requirement_agent", restrictedRequirementAgent);
         framework.registerAgent("code_agent", codeAgent);
         framework.registerAgent("devops_master", masterAgent);
         
@@ -126,6 +134,97 @@ public class AgentService {
             (tools.isEmpty() ? "" : "可以使用文件系统工具读取需求文档。"),
             5
         );
+    }
+    
+    /**
+     * 示例：创建带权限控制的需求分析智能体
+     * 
+     * ⭐ 权限控制演示：
+     * 1. 启用权限校验：isPermissionRequired() 返回 true
+     * 2. 设置白名单：只允许调用 read_file 和 list_directory 工具
+     * 3. 当该智能体尝试调用不在白名单中的工具/智能体时，会被拒绝（返回 SKIPPED 状态）
+     * 
+     * 使用场景：
+     * - 限制智能体的权限范围，提高安全性
+     * - 防止智能体调用危险的工具（如删除文件、执行系统命令等）
+     * - 实现细粒度的权限控制
+     * 
+     * 权限校验流程：
+     * 1. 当 restricted_requirement_agent 调用工具时，框架会检查 isPermissionRequired()
+     * 2. 如果返回 true，检查目标工具是否在 getPermittedToolNameList() 中
+     * 3. 如果不在白名单中，返回 AgentState.SKIPPED，调用被拒绝
+     * 4. 智能体可以处理 SKIPPED 状态，进行错误处理或重试其他方案
+     */
+    private ReActAgent createRestrictedRequirementAgent(LLMClient llmClient) {
+        // 检查是否有 MCP 工具可用
+        List<String> tools = new ArrayList<>();
+        if (framework.hasTool("read_file") || framework.hasTool("list_directory")) {
+            if (framework.hasTool("read_file")) {
+                tools.add("read_file");
+            }
+            if (framework.hasTool("list_directory")) {
+                tools.add("list_directory");
+            }
+        }
+        
+        // 构建系统提示
+        String systemPrompt = "你是需求分析专家。分析需求文档，提取功能清单和技术方案。\n" +
+            (tools.isEmpty() ? "" : "可以使用文件系统工具读取需求文档。\n" +
+            "⚠️ 注意：你只能使用 read_file 和 list_directory 工具，其他工具调用会被拒绝。");
+        
+        // 使用匿名内部类继承 ReActAgent，重写权限相关方法
+        return new ReActAgent(
+            "restricted_requirement_agent",
+            "带权限控制的需求分析智能体",
+            false,
+            llmClient,
+            null,  // 不允许调用子智能体
+            tools.isEmpty() ? null : tools,
+            systemPrompt,
+            5
+        ) {
+            /**
+             * 启用权限校验
+             * 当该方法返回 true 时，框架会检查该智能体是否有权限调用目标工具/智能体
+             * 
+             * 权限校验位置：AgentRequest.call() 方法中
+             * 检查逻辑：
+             * - 如果调用者不是用户（callerCategory != "user"）
+             * - 且调用者启用了权限校验（isPermissionRequired() == true）
+             * - 则检查目标是否在白名单中
+             */
+            @Override
+            public boolean isPermissionRequired() {
+                return true;  // 启用权限控制
+            }
+            
+            /**
+             * 获取允许调用的工具/智能体白名单
+             * 只有在这个列表中的工具/智能体才能被调用
+             * 不在列表中的调用会被拒绝，返回 SKIPPED 状态
+             * 
+             * 示例：
+             * - ✅ 允许：read_file, list_directory（在白名单中）
+             * - ❌ 拒绝：write_file, delete_file, code_agent（不在白名单中）
+             * 
+             * 拒绝调用时，AgentRequest.call() 会返回：
+             * AgentResponse(state=SKIPPED, output="No permission for agent: xxx")
+             */
+            @Override
+            public List<String> getPermittedToolNameList() {
+                // 只允许调用文件读取相关的工具
+                List<String> permitted = new ArrayList<>();
+                if (framework.hasTool("read_file")) {
+                    permitted.add("read_file");
+                }
+                if (framework.hasTool("list_directory")) {
+                    permitted.add("list_directory");
+                }
+                // 不允许调用其他工具（如 write_file、delete_file 等）
+                // 不允许调用其他智能体（如 code_agent）
+                return permitted;
+            }
+        };
     }
     
     /**

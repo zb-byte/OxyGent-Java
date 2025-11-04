@@ -3,15 +3,14 @@ package framework.agent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import framework.model.AgentRequest;
 import framework.model.AgentResponse;
+import framework.model.AgentState;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -21,8 +20,7 @@ import java.util.concurrent.CompletableFuture;
  * 通过 SSE (Server-Sent Events) 协议与远程 MAS 通信的智能体
  * 类似于 Python 版本的 SSEOxyGent
  * 
- * ⚠️ 这是框架代码，业务开发人员可以使用此类连接远程智能体
- */
+ *  */
 public class SSEOxyGent extends RemoteAgent {
     private final boolean isShareCallStack;
     private final ObjectMapper objectMapper;
@@ -54,15 +52,21 @@ public class SSEOxyGent extends RemoteAgent {
                 String answer = connectAndReceive(sseUrl, payload);
                 
                 // 4. 返回响应
-                return new AgentResponse(answer, true, new ArrayList<>());
+                return new AgentResponse(
+                    AgentState.COMPLETED,
+                    answer,
+                    null,
+                    request
+                );
                 
             } catch (Exception e) {
                 System.err.println("❌ 远程调用失败: " + e.getMessage());
                 e.printStackTrace();
                 return new AgentResponse(
-                    "远程调用失败: " + e.getMessage(), 
-                    false, 
-                    new ArrayList<>()
+                    AgentState.FAILED,
+                    "远程调用失败: " + e.getMessage(),
+                    null,
+                    request
                 );
             }
         });

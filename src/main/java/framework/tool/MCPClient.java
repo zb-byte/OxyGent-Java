@@ -24,8 +24,11 @@ public interface MCPClient {
     
     /**
      * 调用 MCP 工具
+     * @param toolName 工具名称
+     * @param arguments 工具参数
+     * @param request 原始请求对象（用于传递上下文，可选，可为 null）
      */
-    CompletableFuture<AgentResponse> callTool(String toolName, Map<String, Object> arguments);
+    CompletableFuture<AgentResponse> callTool(String toolName, Map<String, Object> arguments, AgentRequest request);
     
     /**
      * 清理资源

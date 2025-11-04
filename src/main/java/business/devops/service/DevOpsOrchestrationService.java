@@ -75,7 +75,7 @@ public class DevOpsOrchestrationService {
         
         // 业务逻辑示例：在流程中直接调用 MCP 工具
         try {
-            // 示例1: 直接代码中使用 MCP 文件工具读取需求文档
+            // 1: 直接代码中使用 MCP 文件工具读取需求文档
             if (framework.hasTool("read_file")) {
                 System.out.println("📂 步骤1: 使用 MCP 文件工具读取需求文档");
                 
@@ -101,7 +101,7 @@ public class DevOpsOrchestrationService {
                 System.out.println("✅ 需求文档读取完成: " + preview + "\n");
             }
             
-            // 示例2: 继续执行完整的 DevOps 流程
+            // 2: 继续执行完整的 DevOps 流程
             String taskDescription = buildTaskDescription(requirementId, environment);
             taskDescription += "\n\n注意：需求文档已通过 MCP 工具读取，可以直接使用。";
             

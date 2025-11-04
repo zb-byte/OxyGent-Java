@@ -1,6 +1,5 @@
 package framework.model;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -11,29 +10,22 @@ public class AgentResponse {
     private AgentState state;  // 执行状态
     private String output;  // 输出内容
     private Map<String, Object> extra;  // 额外元数据（token数、耗时等）
-    private AgentRequest request;  // 关联的请求对象
-    
-    // 兼容旧版本构造函数
-    private List<Map<String, String>> history;
-    
     /**
-     * 新版本构造函数（推荐使用）
+     * 关联的请求对象
+     * 1. 日志记录和追踪
+        保存响应时，可同时记录完整请求上下文
+        便于问题排查和日志分析
+       2. 上下文追溯
+        通过响应可追溯到产生它的请求
+        在链式调用中，可追溯完整的调用链
      */
+    private AgentRequest request;  /
+    
     public AgentResponse(AgentState state, String output, Map<String, Object> extra, AgentRequest request) {
         this.state = state;
         this.output = output;
         this.extra = extra != null ? extra : new java.util.HashMap<>();
         this.request = request;
-    }
-    
-    /**
-     * 兼容旧版本的构造函数
-     */
-    public AgentResponse(String output, boolean success, List<Map<String, String>> history) {
-        this.state = success ? AgentState.COMPLETED : AgentState.FAILED;
-        this.output = output;
-        this.history = history;
-        this.extra = new java.util.HashMap<>();
     }
     
     public AgentState getState() {
@@ -67,14 +59,6 @@ public class AgentResponse {
     public void setRequest(AgentRequest request) {
         this.request = request;
     }
-    
-    // 兼容旧版本方法
-    public boolean isSuccess() {
-        return state == AgentState.COMPLETED;
-    }
-    
-    public List<Map<String, String>> getHistory() {
-        return history;
-    }
+
 }
 

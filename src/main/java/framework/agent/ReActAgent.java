@@ -7,16 +7,13 @@ import framework.model.AgentRequest;
 import framework.model.AgentResponse;
 import framework.model.AgentState;
 import framework.model.ToolCall;
-import framework.tool.Tool;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * ReAct智能体实现（框架核心）
  * 封装了ReAct循环、内存管理和工具调用机制
  * 
- * ⚠️ 这是框架代码，业务开发人员应该使用此类，但不要修改
  */
 public class ReActAgent implements Agent {
     private final String name;
@@ -334,14 +331,6 @@ public class ReActAgent implements Agent {
         );
     }
     
-    /**
-     * 执行工具调用（自动路由，旧版本方法，保留兼容性）
-     * @deprecated 使用 executeToolCallWithRetry() 替代
-     */
-    @Deprecated
-    private AgentResponse executeToolCall(ToolCall toolCall, AgentRequest originalRequest) {
-        return executeToolCallWithRetry(toolCall, originalRequest);
-    }
     
     // 简单的JSON提取方法
     private String extractJsonValue(String json, String key) {

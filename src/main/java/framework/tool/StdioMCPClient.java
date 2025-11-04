@@ -3,6 +3,7 @@ package framework.tool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import framework.model.AgentRequest;
 import framework.model.AgentResponse;
+import framework.model.AgentState;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -199,37 +200,38 @@ public class StdioMCPClient implements MCPClient {
     }
     
     @Override
-    public CompletableFuture<AgentResponse> callTool(String toolName, Map<String, Object> arguments) {
+    public CompletableFuture<AgentResponse> callTool(String toolName, Map<String, Object> arguments, AgentRequest request) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 // 发送工具调用请求（JSON-RPC 格式）
-                Map<String, Object> request = new HashMap<>();
-                request.put("jsonrpc", "2.0");
-                request.put("id", System.currentTimeMillis());
-                request.put("method", "tools/call");
+                Map<String, Object> rpcRequest = new HashMap<>();
+                rpcRequest.put("jsonrpc", "2.0");
+                rpcRequest.put("id", System.currentTimeMillis());
+                rpcRequest.put("method", "tools/call");
                 
                 Map<String, Object> params = new HashMap<>();
                 params.put("name", toolName);
                 params.put("arguments", arguments);
-                request.put("params", params);
+                rpcRequest.put("params", params);
                 
-                String requestJson = objectMapper.writeValueAsString(request);
+                String requestJson = objectMapper.writeValueAsString(rpcRequest);
                 writer.println(requestJson);
                 writer.flush();
                 
                 // 读取响应
                 String response = readMCPResponse();
                 
-                // 解析响应
-                return parseToolResponse(response);
+                // 解析响应（传递 request 对象）
+                return parseToolResponse(response, request);
                 
             } catch (Exception e) {
                 System.err.println("❌ MCP 工具调用失败: " + e.getMessage());
                 e.printStackTrace();
                 return new AgentResponse(
+                    AgentState.FAILED,
                     "MCP 工具调用失败: " + e.getMessage(),
-                    false,
-                    new ArrayList<>()
+                    null,
+                    request
                 );
             }
         });
@@ -237,9 +239,10 @@ public class StdioMCPClient implements MCPClient {
     
     /**
      * 解析工具响应（简化版本）
+     * 注意：此方法需要 AgentRequest 参数以使用新版本构造函数
      */
     @SuppressWarnings("unchecked")
-    private AgentResponse parseToolResponse(String response) {
+    private AgentResponse parseToolResponse(String response, AgentRequest request) {
         try {
             Map<String, Object> jsonResponse = objectMapper.readValue(response, Map.class);
             Map<String, Object> result = (Map<String, Object>) jsonResponse.get("result");
@@ -249,15 +252,30 @@ public class StdioMCPClient implements MCPClient {
                 if (content != null && !content.isEmpty()) {
                     Map<String, Object> firstContent = content.get(0);
                     String text = (String) firstContent.get("text");
-                    return new AgentResponse(text != null ? text : "工具执行成功", true, new ArrayList<>());
+                    return new AgentResponse(
+                        AgentState.COMPLETED,
+                        text != null ? text : "工具执行成功",
+                        null,
+                        request
+                    );
                 }
             }
             
-            return new AgentResponse("工具执行成功", true, new ArrayList<>());
+            return new AgentResponse(
+                AgentState.COMPLETED,
+                "工具执行成功",
+                null,
+                request
+            );
             
         } catch (Exception e) {
             System.err.println("⚠️  解析 MCP 响应失败: " + e.getMessage());
-            return new AgentResponse(response, true, new ArrayList<>());
+            return new AgentResponse(
+                AgentState.COMPLETED,
+                response,
+                null,
+                request
+            );
         }
     }
     

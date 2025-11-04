@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * 
  * 连接DeepSeek大模型API
  * 
- * ⚠️ 这是框架代码，业务开发人员应该使用此类，但不要修改
  */
 public class DeepSeekLLMClient implements LLMClient {
     private final String apiKey;

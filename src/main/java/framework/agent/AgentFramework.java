@@ -11,9 +11,7 @@ import framework.model.AgentResponse;
  * Agent Framework - 智能体框架（框架核心代码）
  * 
  * 管理智能体注册、路由和生命周期
- * 
- * ⚠️ 这是框架代码，业务开发人员不应该修改此类
- */
+ *  */
 public class AgentFramework {
     // 智能体注册表
     private final Map<String, Agent> agentRegistry = new ConcurrentHashMap<>();
