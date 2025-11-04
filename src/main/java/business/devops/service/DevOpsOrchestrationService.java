@@ -173,20 +173,16 @@ public class DevOpsOrchestrationService {
     }
     
     /**
-     * 构建任务描述
+     * 构建任务描述（简化演示版本）
      */
     private String buildTaskDescription(String requirementId, String environment) {
         return String.format("""
-            请完成完整的开发流程：
-            1. 从Wiki读取需求 %s
+            请完成开发流程（简化演示）：
+            1. 分析需求 %s
             2. 根据需求编写代码
-            3. 进行代码审查
-            4. 编写并执行测试
-            5. 提交代码到Git
-            6. 部署到%s环境
             
-            请输出完整的流程报告。
-            """, requirementId, environment != null ? environment : "staging");
+            请输出完整的流程报告（需求分析报告 + 代码实现）。
+            """, requirementId);
     }
     
     /**
