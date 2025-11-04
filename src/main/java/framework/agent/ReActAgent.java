@@ -6,6 +6,7 @@ import framework.llm.LLMClient;
 import framework.model.AgentRequest;
 import framework.model.AgentResponse;
 import framework.model.ToolCall;
+import framework.tool.Tool;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -243,8 +244,27 @@ public class ReActAgent implements Agent {
         // 2. 检查是否是工具
         if (tools.contains(toolName) && framework != null) {
             System.out.println("    🛠️  调用工具: " + toolName);
-            // 这里可以扩展工具调用逻辑
-            return new AgentResponse("工具调用结果: " + toolName, true, new ArrayList<>());
+            
+            try {
+                // 通过框架调用工具
+                if (framework.hasTool(toolName)) {
+                    Tool tool = framework.getTool(toolName);
+                    AgentRequest toolRequest = new AgentRequest(
+                        (String) toolCall.getArguments().getOrDefault("query", ""),
+                        originalRequest.getTraceId(),
+                        originalRequest.getCaller(),
+                        toolName
+                    );
+                    toolRequest.getArguments().putAll(toolCall.getArguments());
+                    
+                    return tool.execute(toolRequest).join();
+                } else {
+                    // 工具未注册，返回模拟结果
+                    return new AgentResponse("工具调用结果: " + toolName, true, new ArrayList<>());
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("工具调用失败: " + e.getMessage(), e);
+            }
         }
         
         throw new IllegalArgumentException("未知的工具或智能体: " + toolName);
