@@ -5,10 +5,12 @@ import framework.memory.Observation;
 import framework.llm.LLMClient;
 import framework.model.AgentRequest;
 import framework.model.AgentResponse;
+import framework.model.AgentState;
 import framework.model.ToolCall;
 import framework.tool.Tool;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * ReAct智能体实现（框架核心）
@@ -49,6 +51,11 @@ public class ReActAgent implements Agent {
             // 初始化ReAct内存
             ReactMemory reactMemory = new ReactMemory();
             
+            // 确保请求对象有框架引用（用于调用其他智能体）
+            if (request.getFramework() == null) {
+                request.setFramework(framework);
+            }
+            
             // ReAct循环：自动顺序执行
             for (int round = 0; round <= maxReactRounds; round++) {
                 System.out.println("  📍 Round " + round + " - " + name);
@@ -67,13 +74,31 @@ public class ReActAgent implements Agent {
                 if (decision.type == DecisionType.ANSWER) {
                     // 最终答案，退出循环
                     System.out.println("  ✅ 获得最终答案，退出ReAct循环");
-                    return new AgentResponse(decision.content, true, reactMemory.toHistory());
+                    return new AgentResponse(
+                        AgentState.COMPLETED,
+                        decision.content,
+                        null,
+                        request
+                    );
                     
                 } else if (decision.type == DecisionType.TOOL_CALL) {
                     // 工具调用（可能是子智能体或工具）
                     try {
-                        // 执行工具调用（自动路由）
-                        AgentResponse toolResponse = executeToolCall(decision.toolCall, request);
+                        // 使用请求对象的 call() 方法（支持权限校验、超时、重试）
+                        AgentResponse toolResponse = executeToolCallWithRetry(decision.toolCall, request);
+                        
+                        // 检查响应状态
+                        if (toolResponse.getState() == AgentState.SKIPPED) {
+                            // 权限不足，跳过
+                            reactMemory.addRound(llmResponse, "权限不足: " + toolResponse.getOutput());
+                            System.out.println("  ⚠️  权限不足: " + toolResponse.getOutput());
+                            continue;
+                        } else if (toolResponse.getState() == AgentState.FAILED) {
+                            // 调用失败，加入内存供下一轮修复
+                            reactMemory.addRound(llmResponse, "错误: " + toolResponse.getOutput());
+                            System.out.println("  ❌ 工具调用失败: " + toolResponse.getOutput());
+                            continue;
+                        }
                         
                         // 收集执行结果
                         Observation observation = new Observation(
@@ -101,7 +126,12 @@ public class ReActAgent implements Agent {
             }
             
             // 达到最大轮次，返回最后一次的结果
-            return new AgentResponse("达到最大执行轮次", false, reactMemory.toHistory());
+            return new AgentResponse(
+                AgentState.FAILED,
+                "达到最大执行轮次，无法完成任务",
+                null,
+                request
+            );
         });
     }
     
@@ -213,61 +243,104 @@ public class ReActAgent implements Agent {
     }
     
     /**
-     * 执行工具调用（自动路由）
+     * 执行工具调用（支持重试机制）
+     * 对应 Python 版本的 retry_execute()
      */
-    private AgentResponse executeToolCall(ToolCall toolCall, AgentRequest originalRequest) {
+    private AgentResponse executeToolCallWithRetry(ToolCall toolCall, AgentRequest originalRequest) {
         String toolName = toolCall.getToolName();
         
-        // 1. 检查是否是子智能体
-        if (subAgents.contains(toolName) && framework != null) {
-            // 调用子智能体（通过框架自动路由）
-            System.out.println("    🔄 路由到子智能体: " + toolName);
-            
-            AgentRequest subRequest = new AgentRequest(
-                (String) toolCall.getArguments().getOrDefault("query", ""),
-                originalRequest.getTraceId(),
-                originalRequest.getCaller(),
-                toolName
-            );
-            
-            // 传递参数（自动传递结果）
-            subRequest.getArguments().putAll(toolCall.getArguments());
-            
-            try {
-                // 同步调用
-                return framework.getAgent(toolName).execute(subRequest).join();
-            } catch (Exception e) {
-                throw new RuntimeException("子智能体调用失败: " + e.getMessage(), e);
-            }
+        // 确保请求对象有框架引用
+        if (originalRequest.getFramework() == null) {
+            originalRequest.setFramework(framework);
         }
         
-        // 2. 检查是否是工具
-        if (tools.contains(toolName) && framework != null) {
-            System.out.println("    🛠️  调用工具: " + toolName);
-            
+        // 检查是否是子智能体或工具
+        if ((subAgents.contains(toolName) || tools.contains(toolName)) && framework != null) {
+            // 尝试获取智能体（用于重试配置）
+            Agent agent = null;
             try {
-                // 通过框架调用工具
-                if (framework.hasTool(toolName)) {
-                    Tool tool = framework.getTool(toolName);
-                    AgentRequest toolRequest = new AgentRequest(
-                        (String) toolCall.getArguments().getOrDefault("query", ""),
-                        originalRequest.getTraceId(),
-                        originalRequest.getCaller(),
-                        toolName
-                    );
-                    toolRequest.getArguments().putAll(toolCall.getArguments());
-                    
-                    return tool.execute(toolRequest).join();
-                } else {
-                    // 工具未注册，返回模拟结果
-                    return new AgentResponse("工具调用结果: " + toolName, true, new ArrayList<>());
+                if (framework.getAllAgents().contains(toolName)) {
+                    agent = framework.getAgent(toolName);
                 }
             } catch (Exception e) {
-                throw new RuntimeException("工具调用失败: " + e.getMessage(), e);
+                // 不是智能体，可能是工具
+            }
+            
+            int retries = agent != null ? agent.getRetries() : 0;
+            long delay = agent != null ? agent.getDelay() : 1;
+            
+            // 重试逻辑
+            int attempt = 0;
+            while (attempt <= retries) {
+                try {
+                    // 使用请求对象的 call() 方法（自动处理权限、超时等）
+                    AgentResponse response = originalRequest.call(toolName, toolCall.getArguments()).join();
+                    
+                    // 如果成功，直接返回
+                    if (response.getState() == AgentState.COMPLETED) {
+                        return response;
+                    }
+                    
+                    // 如果是权限问题，直接返回（不重试）
+                    if (response.getState() == AgentState.SKIPPED) {
+                        return response;
+                    }
+                    
+                    // 失败但还有重试机会
+                    if (attempt < retries) {
+                        attempt++;
+                        System.out.println("    ⚠️  调用失败，第 " + attempt + " 次重试...");
+                        try {
+                            Thread.sleep(delay * 1000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        continue;
+                    }
+                    
+                    // 重试次数用完，返回失败响应
+                    return response;
+                    
+                } catch (Exception e) {
+                    // 异常处理
+                    if (attempt < retries) {
+                        attempt++;
+                        System.out.println("    ⚠️  调用异常，第 " + attempt + " 次重试: " + e.getMessage());
+                        try {
+                            Thread.sleep(delay * 1000);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        }
+                        continue;
+                    }
+                    
+                    // 重试次数用完，返回失败响应
+                    return new AgentResponse(
+                        AgentState.FAILED,
+                        "工具调用失败（已重试 " + retries + " 次）: " + e.getMessage(),
+                        null,
+                        originalRequest
+                    );
+                }
             }
         }
         
-        throw new IllegalArgumentException("未知的工具或智能体: " + toolName);
+        // 未知的工具或智能体
+        return new AgentResponse(
+            AgentState.FAILED,
+            "未知的工具或智能体: " + toolName,
+            null,
+            originalRequest
+        );
+    }
+    
+    /**
+     * 执行工具调用（自动路由，旧版本方法，保留兼容性）
+     * @deprecated 使用 executeToolCallWithRetry() 替代
+     */
+    @Deprecated
+    private AgentResponse executeToolCall(ToolCall toolCall, AgentRequest originalRequest) {
+        return executeToolCallWithRetry(toolCall, originalRequest);
     }
     
     // 简单的JSON提取方法
@@ -336,4 +409,5 @@ public class ReActAgent implements Agent {
         }
     }
 }
+
 

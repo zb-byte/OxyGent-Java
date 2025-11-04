@@ -1,0 +1,78 @@
+@startuml DevOps编排服务简化流程时序图
+
+title DevOps编排服务简化流程时序图\n(核心流程展示)
+
+actor User as 用户
+participant "DevOpsOrchestrationService\n(编排服务)" as Orchestration
+participant "AgentFramework\n(智能体框架)" as Framework
+participant "devops_master\n(主控智能体)" as Master
+participant "requirement_agent\n(需求分析)" as ReqAgent
+participant "code_agent\n(编码智能体)" as CodeAgent
+participant "LLMClient\n(大语言模型)" as LLM
+
+== 执行流程 ==
+
+User -> Orchestration: executeDevOpsWorkflow(requirementId)
+activate Orchestration
+
+Orchestration -> Orchestration: 构建任务描述\n创建AgentRequest
+Orchestration -> Framework: chatWithMaster(request)
+activate Framework
+
+Framework -> Master: execute(request)
+activate Master
+
+== 主控智能体ReAct循环 ==
+
+Master -> Master: Round 1: 构建上下文
+Master -> LLM: chat(messages)
+LLM --> Master: 决策: 调用requirement_agent
+
+Master -> Master: request.call("requirement_agent")
+Master -> Framework: getAgent("requirement_agent")
+Framework --> Master: requirement_agent
+
+Master -> ReqAgent: execute(subRequest)
+activate ReqAgent
+
+ReqAgent -> ReqAgent: ReAct循环分析需求
+ReqAgent -> LLM: chat(messages)
+LLM --> ReqAgent: 需求分析结果
+ReqAgent --> Master: AgentResponse\n(需求分析报告)
+deactivate ReqAgent
+
+Master -> Master: 更新react_memory\n记录观察结果
+
+Master -> Master: Round 2: 构建上下文\n(包含需求分析结果)
+Master -> LLM: chat(messages)
+LLM --> Master: 决策: 调用code_agent
+
+Master -> Master: request.call("code_agent")
+Master -> Framework: getAgent("code_agent")
+Framework --> Master: code_agent
+
+Master -> CodeAgent: execute(subRequest)
+activate CodeAgent
+
+CodeAgent -> CodeAgent: 通过SSE调用远程服务\n(或本地执行)
+CodeAgent --> Master: AgentResponse\n(代码实现)
+deactivate CodeAgent
+
+Master -> Master: 更新react_memory\n记录代码编写结果
+
+Master -> Master: Round 3: 构建上下文\n(包含所有结果)
+Master -> LLM: chat(messages)
+LLM --> Master: 决策: ANSWER\n返回最终结果
+
+Master --> Framework: AgentResponse\n(完整流程报告)
+deactivate Master
+
+Framework --> Orchestration: AgentResponse
+deactivate Framework
+
+Orchestration -> Orchestration: printResult(response)
+Orchestration --> User: 显示最终结果
+deactivate Orchestration
+
+@enduml
+

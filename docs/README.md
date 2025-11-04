@@ -9,6 +9,7 @@
 ### 🔄 A2A 通信机制
 
 - **[A2A_CORE_COMPARISON.md](./A2A_CORE_COMPARISON.md)** - OxyGent (Python) 与 react-oxygent-java 的 A2A 核心思路对比分析
+- **[A2A_FEATURE_COMPLETE.md](./A2A_FEATURE_COMPLETE.md)** - A2A 功能补齐完成报告
 - **[SSE_REMOTE_CALL_CODE_LOCATION.md](./SSE_REMOTE_CALL_CODE_LOCATION.md)** - Python 版本 SSE 远程调用代码位置详解
 - **[REMOTE_AGENT_USAGE.md](./REMOTE_AGENT_USAGE.md)** - 远程智能体使用指南
 
@@ -16,6 +17,7 @@
 
 - **[AGENT_FLOW_PATTERNS.md](./AGENT_FLOW_PATTERNS.md)** - 智能体流程模式详解（ReAct、PlanAndSolve、Reflexion）
 - **[WHERE_TO_ADD_BUSINESS_LOGIC.md](./WHERE_TO_ADD_BUSINESS_LOGIC.md)** - 业务流程中增加业务逻辑的位置指南
+- **[DEVOPS_WORKFLOW_SEQUENCE.md](./DEVOPS_WORKFLOW_SEQUENCE.md)** - DevOps编排服务流程时序图详解
 
 ### 🚀 启动和初始化
 
@@ -58,7 +60,8 @@
 
 1. **[A2A_CORE_COMPARISON.md](./A2A_CORE_COMPARISON.md)** - 理解 A2A (Agent-to-Agent) 通信机制
 2. **[AGENT_FLOW_PATTERNS.md](./AGENT_FLOW_PATTERNS.md)** - 理解不同的流程模式（ReAct、PlanAndSolve、Reflexion）
-3. **[SPRING_BEAN_INITIALIZATION_ORDER.md](./SPRING_BEAN_INITIALIZATION_ORDER.md)** - 理解 Spring Bean 初始化顺序
+3. **[DEVOPS_WORKFLOW_SEQUENCE.md](./DEVOPS_WORKFLOW_SEQUENCE.md)** - 理解 DevOps 编排服务的完整执行流程（时序图）
+4. **[SPRING_BEAN_INITIALIZATION_ORDER.md](./SPRING_BEAN_INITIALIZATION_ORDER.md)** - 理解 Spring Bean 初始化顺序
 
 ### 功能使用
 

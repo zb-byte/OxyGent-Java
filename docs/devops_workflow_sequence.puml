@@ -1,0 +1,159 @@
+@startuml DevOps编排服务完整流程时序图
+
+title DevOps编排服务完整流程时序图
+
+actor User as 用户
+participant "Application\n(应用启动类)" as Application
+participant "DevOpsOrchestrationService\n(编排服务)" as DevOpsOrchestrationService
+participant "AgentFramework\n(智能体框架)" as AgentFramework
+participant "devops_master\n(主控智能体)" as MasterAgent
+participant "requirement_agent\n(需求分析智能体)" as RequirementAgent
+participant "code_agent\n(编码智能体)" as CodeAgent
+participant "MCP工具\n(read_file/write_file)" as MCPTool
+participant "LLMClient\n(大语言模型客户端)" as LLMClient
+participant "远程服务器\n(SSE协议)" as RemoteServer
+
+== 阶段1: 应用启动与初始化 ==
+
+User -> Application: 启动应用
+activate Application
+
+Application -> Application: Spring Boot容器启动
+Application -> DevOpsOrchestrationService: 依赖注入（初始化）
+activate DevOpsOrchestrationService
+DevOpsOrchestrationService -> AgentFramework: 获取框架实例
+activate AgentFramework
+note right of AgentFramework: 框架已初始化\n包含所有注册的智能体
+deactivate AgentFramework
+deactivate DevOpsOrchestrationService
+
+== 阶段2: 执行DevOps流程 ==
+
+Application -> DevOpsOrchestrationService: executeDevOpsWorkflow(requirementId, environment)
+activate DevOpsOrchestrationService
+
+DevOpsOrchestrationService -> DevOpsOrchestrationService: buildTaskDescription()\n构建任务描述
+DevOpsOrchestrationService -> DevOpsOrchestrationService: 创建AgentRequest\n(query, caller="user", targetAgent="devops_master")
+
+DevOpsOrchestrationService -> AgentFramework: chatWithMaster(request)
+activate AgentFramework
+
+AgentFramework -> MasterAgent: execute(request)
+activate MasterAgent
+
+note right of MasterAgent: 开始ReAct循环\n(推理-行动-观察)
+
+== 阶段3: ReAct循环 - 需求分析阶段 ==
+
+loop ReAct循环 (最多10轮)
+    
+    MasterAgent -> LLMClient: chat(messages)\n构建上下文(包含历史)
+    activate LLMClient
+    LLMClient --> MasterAgent: LLM响应\n(决策: 调用requirement_agent)
+    deactivate LLMClient
+    
+    MasterAgent -> MasterAgent: parseLLMResponse()\n解析决策: TOOL_CALL
+    
+    MasterAgent -> MasterAgent: executeToolCallWithRetry()\n准备调用子智能体
+    
+    alt 使用新的call()方法
+        MasterAgent -> MasterAgent: request.call("requirement_agent", arguments)
+        
+        MasterAgent -> MasterAgent: cloneWith("requirement_agent")\n克隆请求，更新调用栈
+        
+        MasterAgent -> AgentFramework: getAgent("requirement_agent")
+        AgentFramework --> MasterAgent: requirement_agent实例
+        
+        MasterAgent -> RequirementAgent: execute(subRequest)
+        activate RequirementAgent
+        
+        note right of RequirementAgent: 开始ReAct循环\n(最多5轮)
+        
+        loop RequirementAgent ReAct循环
+            
+            RequirementAgent -> LLMClient: chat(messages)
+            activate LLMClient
+            LLMClient --> RequirementAgent: LLM响应
+            deactivate LLMClient
+            
+            RequirementAgent -> RequirementAgent: parseLLMResponse()
+            
+            alt 需要读取文件
+                RequirementAgent -> RequirementAgent: request.call("read_file", args)
+                RequirementAgent -> MCPTool: execute(toolRequest)
+                activate MCPTool
+                MCPTool --> RequirementAgent: 文件内容
+                deactivate MCPTool
+                RequirementAgent -> RequirementAgent: 更新react_memory
+            else 直接分析
+                RequirementAgent -> RequirementAgent: 分析需求，生成报告
+            end
+        end
+        
+        RequirementAgent --> MasterAgent: AgentResponse\n(state=COMPLETED, output=需求分析报告)
+        deactivate RequirementAgent
+        
+        MasterAgent -> MasterAgent: 更新react_memory\n记录观察结果
+        
+    end
+    
+    MasterAgent -> LLMClient: chat(messages)\n包含需求分析结果
+    activate LLMClient
+    LLMClient --> MasterAgent: LLM响应\n(决策: 调用code_agent)
+    deactivate LLMClient
+    
+    MasterAgent -> MasterAgent: parseLLMResponse()\n解析决策: TOOL_CALL
+    
+    == 阶段4: ReAct循环 - 代码编写阶段 ==
+    
+    MasterAgent -> MasterAgent: request.call("code_agent", arguments)
+    
+    MasterAgent -> AgentFramework: getAgent("code_agent")
+    AgentFramework --> MasterAgent: code_agent实例(SSEOxyGent)
+    
+    MasterAgent -> CodeAgent: execute(subRequest)
+    activate CodeAgent
+    
+    CodeAgent -> RemoteServer: HTTP POST /sse/chat\n(SSE协议)
+    activate RemoteServer
+    
+    RemoteServer -> RemoteServer: 处理远程智能体请求
+    RemoteServer --> CodeAgent: SSE流式响应\n(answer/tool_call/observation)
+    
+    CodeAgent -> CodeAgent: 解析SSE消息\n收集完整响应
+    
+    RemoteServer --> CodeAgent: 完成
+    deactivate RemoteServer
+    
+    CodeAgent --> MasterAgent: AgentResponse\n(state=COMPLETED, output=代码实现)
+    deactivate CodeAgent
+    
+    MasterAgent -> MasterAgent: 更新react_memory\n记录代码编写结果
+    
+    MasterAgent -> LLMClient: chat(messages)\n包含所有结果
+    activate LLMClient
+    LLMClient --> MasterAgent: LLM响应\n(决策: ANSWER - 返回最终结果)
+    deactivate LLMClient
+    
+    MasterAgent -> MasterAgent: parseLLMResponse()\n解析决策: ANSWER
+    
+    MasterAgent --> AgentFramework: AgentResponse\n(state=COMPLETED, output=完整流程报告)
+    deactivate MasterAgent
+    
+end
+
+AgentFramework --> DevOpsOrchestrationService: AgentResponse
+deactivate AgentFramework
+
+== 阶段5: 结果处理 ==
+
+DevOpsOrchestrationService -> DevOpsOrchestrationService: printResult(response)\n打印执行结果
+
+DevOpsOrchestrationService --> Application: AgentResponse
+deactivate DevOpsOrchestrationService
+
+Application -> User: 显示最终结果
+deactivate Application
+
+@enduml
+

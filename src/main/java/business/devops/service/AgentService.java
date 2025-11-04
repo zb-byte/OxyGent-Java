@@ -32,15 +32,15 @@ public class AgentService {
      * 初始化DevOps业务需要的所有智能体和工具
      */
     private void initializeAgents() {
-        LLMClient llmClient = llmClientService.getLLMClient();
         
         // 1. 创建DevOps业务所需要 MCP 工具
         initializeMCPTools();
         
-        // 2. 创建DevOps业务所需要的子智能体（简化演示：只保留核心智能体）
+        // 2. 创建DevOps业务所需要的子智能体
+        LLMClient llmClient = llmClientService.getLLMClient();
         ReActAgent requirementAgent = createRequirementAgent(llmClient);
         // 2.1 创建编码智能体: 通过 SSE 协议调用远程服务
-        SSEOxyGent codeAgent = createCodeAgent(llmClient);
+        SSEOxyGent codeAgent = createCodeAgent();
         
         // 3. 创建主控智能体
         ReActAgent masterAgent = createMasterAgent(llmClient);
@@ -129,9 +129,9 @@ public class AgentService {
     }
     
     /**
-     * 创建代码编写智能体
+     * 远程 SSE 方式：创建代码编写智能体
      */
-    private SSEOxyGent createCodeAgent(LLMClient llmClient) {
+    private SSEOxyGent createCodeAgent() {
         return new SSEOxyGent(
             "code_agent",
             "编码智能体",
