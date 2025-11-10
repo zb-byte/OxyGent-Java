@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../OxyGent"
+		},
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../spring-ai-alibaba"
+		}
+	],
+	"settings": {}
+}
