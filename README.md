@@ -215,6 +215,30 @@ ParallelAgent parallelAgent = new ParallelAgent(
 framework.registerAgent("parallel_agent", parallelAgent);
 ```
 
+#### 6. ReflexionAgent（反思改进智能体）
+
+```java
+// 创建 worker agent（生成答案）
+ChatAgent workerAgent = new ChatAgent("worker_agent", ...);
+
+// 创建 reflexion agent（评价答案）
+ChatAgent reflexionAgent = new ChatAgent("reflexion_agent", ...);
+
+// 创建 ReflexionAgent
+ReflexionAgent reflexion = new ReflexionAgent(
+    "reflexion_agent",
+    "反思改进智能体",
+    true,  // 主控智能体
+    "worker_agent",  // 生成答案的 Agent
+    "reflexion_agent",  // 评价答案的 Agent
+    3  // 最大反思轮次
+);
+
+framework.registerAgent("worker_agent", workerAgent);
+framework.registerAgent("reflexion_agent", reflexionAgent);
+framework.registerAgent("reflexion_agent", reflexion);
+```
+
 ### 如何选择 Agent
 
 - **简单问答** → ChatAgent
@@ -222,6 +246,7 @@ framework.registerAgent("parallel_agent", parallelAgent);
 - **复杂推理** → ReActAgent
 - **固定流程** → WorkflowAgent
 - **并行协作** → ParallelAgent
+- **高质量答案** → ReflexionAgent
 
 详细说明请参考：[Agent 使用指南](./docs/AGENT_USAGE_GUIDE.md)
 

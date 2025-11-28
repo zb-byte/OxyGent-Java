@@ -15,6 +15,7 @@
 | **RAGAgent** | 检索增强生成，结合知识库 | 需要外部知识检索的场景 |
 | **WorkflowAgent** | 执行自定义业务流程 | 固定业务流程、多步骤任务 |
 | **ParallelAgent** | 并行执行多个任务并聚合 | 多角色协作、并行求解 |
+| **ReflexionAgent** | 回答→评价→改进循环 | 需要高质量答案、需要自我改进的场景 |
 
 ---
 
@@ -344,6 +345,149 @@ ParallelAgent analyzer = new ParallelAgent(
 
 ---
 
+## 6. ReflexionAgent（反思改进智能体）
+
+### 核心能力
+
+"回答 → 评价 → 改进"循环，通过评审 Agent 检查答复质量，给出改进建议，不满意则生成改进 prompt 再答，直到满意或达轮次上限。
+
+### 执行流程
+
+1. **生成答案**：调用 `worker_agent` 生成初始答案
+2. **评价答案**：调用 `reflexion_agent` 评价答案质量
+3. **判断满意**：如果满意，返回答案
+4. **改进循环**：如果不满意且未达最大轮次，生成改进提示，继续循环
+
+### 使用示例
+
+```java
+// 1. 创建 worker agent（生成答案）
+ChatAgent workerAgent = new ChatAgent(
+    "worker_agent",
+    "工作智能体，负责生成答案",
+    false,
+    llmClient,
+    "You are a helpful assistant that provides detailed answers.",
+    10
+);
+
+// 2. 创建 reflexion agent（评价答案）
+ChatAgent reflexionAgent = new ChatAgent(
+    "reflexion_agent",
+    "反思智能体，负责评价答案质量",
+    false,
+    llmClient,
+    "You are an expert evaluator that assesses answer quality and provides improvement suggestions.",
+    10
+);
+
+// 3. 创建 ReflexionAgent
+ReflexionAgent reflexion = new ReflexionAgent(
+    "reflexion_agent",
+    "反思改进智能体",
+    true,  // 主控智能体
+    "worker_agent",  // 生成答案的 Agent
+    "reflexion_agent",  // 评价答案的 Agent
+    3  // 最大反思轮次
+);
+
+framework.registerAgent("worker_agent", workerAgent);
+framework.registerAgent("reflexion_agent", reflexionAgent);
+framework.registerAgent("reflexion_agent", reflexion);
+```
+
+### 自定义评价和改进模板
+
+```java
+// 使用自定义评价模板
+String customEvaluationTemplate = 
+    "Evaluate this answer:\n\n" +
+    "Question: {query}\n" +
+    "Answer: {answer}\n\n" +
+    "Check: accuracy, completeness, clarity.\n" +
+    "Format: is_satisfactory: true/false\n" +
+    "evaluation_reason: [reason]\n" +
+    "improvement_suggestions: [suggestions]";
+
+String customImprovementTemplate = 
+    "{original_query}\n\n" +
+    "Improve based on: {improvement_suggestions}\n" +
+    "Previous: {previous_answer}";
+
+ReflexionAgent customReflexion = new ReflexionAgent(
+    "custom_reflexion",
+    "自定义反思智能体",
+    true,
+    "worker_agent",
+    "reflexion_agent",
+    3,
+    null,  // 使用默认 worker 解析
+    null,  // 使用默认 reflexion 解析
+    customEvaluationTemplate,
+    customImprovementTemplate
+);
+```
+
+### 自定义解析函数
+
+```java
+// 自定义 worker 响应解析
+Function<String, String> parseWorker = response -> {
+    // 提取答案部分（例如从 JSON 中提取）
+    return response.trim();
+};
+
+// 自定义 reflexion 响应解析
+Function<String, ReflectionEvaluation> parseReflexion = response -> {
+    // 解析评价结果（例如从 JSON 中解析）
+    // 返回 ReflectionEvaluation 对象
+    return new ReflectionEvaluation(
+        true,  // isSatisfactory
+        "Good answer",  // evaluationReason
+        ""  // improvementSuggestions
+    );
+};
+
+ReflexionAgent customReflexion = new ReflexionAgent(
+    "custom_reflexion",
+    "自定义解析的反思智能体",
+    true,
+    "worker_agent",
+    "reflexion_agent",
+    3,
+    parseWorker,
+    parseReflexion,
+    null,  // 使用默认模板
+    null
+);
+```
+
+### 特性
+
+- **自动循环**：自动执行"生成→评价→改进"循环
+- **质量保证**：通过评价机制确保答案质量
+- **可配置**：支持自定义评价模板、改进模板和解析函数
+- **灵活控制**：可设置最大反思轮次
+
+### 适用场景
+
+- 需要高质量答案的场景
+- 需要自我改进和优化的任务
+- 数学问题求解（需要验证正确性）
+- 代码生成（需要检查代码质量）
+- 文档撰写（需要检查完整性和准确性）
+
+### 评价标准
+
+默认评价模板包含以下标准：
+1. **准确性**：信息是否正确和真实
+2. **完整性**：是否完全回答了用户的问题
+3. **清晰度**：结构是否清晰、易于理解
+4. **相关性**：是否聚焦用户需求
+5. **有用性**：是否提供实用价值
+
+---
+
 ## 📚 如何选择 Agent
 
 ### 决策树
@@ -357,7 +501,9 @@ ParallelAgent analyzer = new ParallelAgent(
         ├─ 是 → WorkflowAgent
         └─ 否 → 需要并行执行多个任务？
             ├─ 是 → ParallelAgent
-            └─ 否 → ChatAgent（简单对话）
+            └─ 否 → 需要高质量答案和自我改进？
+                ├─ 是 → ReflexionAgent
+                └─ 否 → ChatAgent（简单对话）
 ```
 
 ### 快速参考
@@ -369,6 +515,7 @@ ParallelAgent analyzer = new ParallelAgent(
 | 复杂推理 | ReActAgent |
 | 固定流程 | WorkflowAgent |
 | 并行协作 | ParallelAgent |
+| 高质量答案 | ReflexionAgent |
 
 ---
 
@@ -387,6 +534,7 @@ ParallelAgent analyzer = new ParallelAgent(
 3. **复杂推理用 ReActAgent**：需要动态决策和工具调用时，使用 ReActAgent
 4. **固定流程用 WorkflowAgent**：业务流程明确时，使用 WorkflowAgent 更高效
 5. **并行协作用 ParallelAgent**：需要多个 Agent 协作时，使用 ParallelAgent
+6. **高质量答案用 ReflexionAgent**：需要确保答案质量、需要自我改进时，使用 ReflexionAgent
 
 ---
 
