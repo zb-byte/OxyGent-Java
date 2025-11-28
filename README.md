@@ -117,6 +117,7 @@ DeepSeek API 端点为：`https://api.deepseek.com/v1/chat/completions`
 
 ## 核心特性
 
+✅ **多种 Agent 类型**：支持 ReActAgent、ChatAgent、RAGAgent、WorkflowAgent、ParallelAgent  
 ✅ **ReAct循环**：自动顺序执行  
 ✅ **react_memory管理**：自动记录和传递历史  
 ✅ **LLM集成**：支持 DeepSeek、Ollama、OpenAI  
@@ -125,7 +126,11 @@ DeepSeek API 端点为：`https://api.deepseek.com/v1/chat/completions`
 
 ## 开发指南
 
-### 添加新的智能体
+### Agent 类型
+
+框架支持以下 5 种 Agent 类型：
+
+#### 1. ReActAgent（推理-行动智能体）
 
 ```java
 ReActAgent agent = new ReActAgent(
@@ -133,14 +138,92 @@ ReActAgent agent = new ReActAgent(
     "智能体描述",
     false,
     llmClient,
-    subAgents,
-    tools,
-    systemPrompt,
-    maxRounds
+    subAgents,      // 可调用的子智能体
+    tools,          // 可用的工具
+    systemPrompt,   // 系统提示
+    maxRounds       // 最大执行轮次
 );
 
 framework.registerAgent("agent_name", agent);
 ```
+
+#### 2. ChatAgent（对话智能体）
+
+```java
+ChatAgent chatAgent = new ChatAgent(
+    "chat_agent",
+    "对话智能体",
+    false,
+    llmClient,
+    "You are a helpful assistant.",  // 系统提示
+    10  // 短期记忆大小
+);
+
+framework.registerAgent("chat_agent", chatAgent);
+```
+
+#### 3. RAGAgent（检索增强生成智能体）
+
+```java
+RAGAgent ragAgent = new RAGAgent(
+    "rag_agent",
+    "检索增强智能体",
+    false,
+    llmClient,
+    null,  // 使用默认提示词
+    10,
+    "knowledge",  // 知识占位符
+    request -> {
+        // 知识检索逻辑
+        String knowledge = searchFromDatabase(request.getQuery());
+        return CompletableFuture.completedFuture(knowledge);
+    }
+);
+
+framework.registerAgent("rag_agent", ragAgent);
+```
+
+#### 4. WorkflowAgent（工作流智能体）
+
+```java
+WorkflowAgent workflowAgent = new WorkflowAgent(
+    "workflow_agent",
+    "工作流智能体",
+    false,
+    request -> {
+        // 自定义业务流程
+        AgentResponse response = request.call("other_agent", 
+            Map.of("query", request.getQuery())).join();
+        return CompletableFuture.completedFuture(response.getOutput());
+    }
+);
+
+framework.registerAgent("workflow_agent", workflowAgent);
+```
+
+#### 5. ParallelAgent（并行执行智能体）
+
+```java
+ParallelAgent parallelAgent = new ParallelAgent(
+    "parallel_agent",
+    "并行执行智能体",
+    false,
+    llmClient,  // 用于总结的 LLM
+    Arrays.asList("agent1", "agent2", "agent3")  // 并行执行的 Agent 列表
+);
+
+framework.registerAgent("parallel_agent", parallelAgent);
+```
+
+### 如何选择 Agent
+
+- **简单问答** → ChatAgent
+- **需要知识库** → RAGAgent
+- **复杂推理** → ReActAgent
+- **固定流程** → WorkflowAgent
+- **并行协作** → ParallelAgent
+
+详细说明请参考：[Agent 使用指南](./docs/AGENT_USAGE_GUIDE.md)
 
 ### 自定义LLM客户端
 
@@ -191,12 +274,22 @@ java -version  # 应该显示 21.x
 
 详细文档请查看 [docs/](./docs/) 目录：
 
+### 核心文档
+
 - **[文档索引](./docs/README.md)** - 所有文档的索引
+- **[Agent 使用指南](./docs/AGENT_USAGE_GUIDE.md)** - 所有 Agent 类型的使用说明 ⭐ 新增
 - **[业务开发指南](./docs/BUSINESS_DEVELOPMENT_GUIDE.md)** - 如何开发新业务
 - **[启动顺序说明](./docs/STARTUP_SEQUENCE.md)** - 应用启动加载顺序
-- **[A2A 核心思路对比](./docs/A2A_CORE_COMPARISON.md)** - 与 Python 版本的对比
+
+### 功能文档
+
 - **[MCP 工具使用指南](./docs/MCP_USAGE_GUIDE.md)** - MCP 工具使用说明
 - **[远程智能体使用指南](./docs/REMOTE_AGENT_USAGE.md)** - 远程调用使用说明
+
+### 技术文档
+
+- **[A2A 核心思路对比](./docs/A2A_CORE_COMPARISON.md)** - 与 Python 版本的对比
+- **[智能体流程模式](./docs/AGENT_FLOW_PATTERNS.md)** - ReAct、PlanAndSolve 等模式详解
 
 ## 更多信息
 

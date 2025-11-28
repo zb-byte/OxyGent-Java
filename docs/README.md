@@ -15,6 +15,7 @@
 
 ### 🎯 业务流程和模式
 
+- **[AGENT_USAGE_GUIDE.md](./AGENT_USAGE_GUIDE.md)** - Agent 使用指南（所有 Agent 类型说明） ⭐ 新增
 - **[AGENT_FLOW_PATTERNS.md](./AGENT_FLOW_PATTERNS.md)** - 智能体流程模式详解（ReAct、PlanAndSolve、Reflexion）
 - **[WHERE_TO_ADD_BUSINESS_LOGIC.md](./WHERE_TO_ADD_BUSINESS_LOGIC.md)** - 业务流程中增加业务逻辑的位置指南
 - **[DEVOPS_WORKFLOW_SEQUENCE.md](./DEVOPS_WORKFLOW_SEQUENCE.md)** - DevOps编排服务流程时序图详解
@@ -65,8 +66,9 @@
 
 ### 功能使用
 
-1. **[REMOTE_AGENT_USAGE.md](./REMOTE_AGENT_USAGE.md)** - 使用远程智能体
-2. **[MCP_USAGE_GUIDE.md](./MCP_USAGE_GUIDE.md)** - 使用 MCP 工具
+1. **[AGENT_USAGE_GUIDE.md](./AGENT_USAGE_GUIDE.md)** - 所有 Agent 类型的使用指南 ⭐ 新增
+2. **[REMOTE_AGENT_USAGE.md](./REMOTE_AGENT_USAGE.md)** - 使用远程智能体
+3. **[MCP_USAGE_GUIDE.md](./MCP_USAGE_GUIDE.md)** - 使用 MCP 工具
 
 ### 技术实现
 

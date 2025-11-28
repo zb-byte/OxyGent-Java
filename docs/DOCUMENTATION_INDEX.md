@@ -18,6 +18,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [AGENT_USAGE_GUIDE.md](./AGENT_USAGE_GUIDE.md) | Agent 使用指南（所有 Agent 类型说明） ⭐ 新增 |
 | [AGENT_FLOW_PATTERNS.md](./AGENT_FLOW_PATTERNS.md) | 智能体流程模式详解（ReAct、PlanAndSolve、Reflexion） |
 | [WHERE_TO_ADD_BUSINESS_LOGIC.md](./WHERE_TO_ADD_BUSINESS_LOGIC.md) | 业务流程中增加业务逻辑的位置指南 |
 
@@ -72,9 +73,10 @@
 ### 场景2: 理解核心机制
 
 **推荐阅读顺序**：
-1. [A2A_CORE_COMPARISON.md](./A2A_CORE_COMPARISON.md) - 理解 A2A 通信机制
-2. [AGENT_FLOW_PATTERNS.md](./AGENT_FLOW_PATTERNS.md) - 理解不同的流程模式
-3. [SPRING_BEAN_INITIALIZATION_ORDER.md](./SPRING_BEAN_INITIALIZATION_ORDER.md) - 理解 Spring 初始化顺序
+1. [AGENT_USAGE_GUIDE.md](./AGENT_USAGE_GUIDE.md) - 了解所有 Agent 类型和使用方法 ⭐ 新增
+2. [A2A_CORE_COMPARISON.md](./A2A_CORE_COMPARISON.md) - 理解 A2A 通信机制
+3. [AGENT_FLOW_PATTERNS.md](./AGENT_FLOW_PATTERNS.md) - 理解不同的流程模式
+4. [SPRING_BEAN_INITIALIZATION_ORDER.md](./SPRING_BEAN_INITIALIZATION_ORDER.md) - 理解 Spring 初始化顺序
 
 ### 场景3: 使用远程智能体
 
@@ -98,9 +100,9 @@
 
 ## 📊 文档统计
 
-- **总文档数**: 17 个
-- **最新更新**: 2024-11-04
-- **覆盖主题**: A2A 通信、业务流程、启动流程、MCP 工具、开发指南等
+- **总文档数**: 18 个
+- **最新更新**: 2024-11-28
+- **覆盖主题**: Agent 使用、A2A 通信、业务流程、启动流程、MCP 工具、开发指南等
 
 ---
 

@@ -51,28 +51,39 @@ public class AgentService {
 
         // 3. 创建编码需求的主控智能体（ReAct 模式）
         ReActAgent masterAgent = createMasterAgent(llmClient);
-    
-        //--------------以下是演示 PlanAndSolve 流程所需要的智能体------------------
-         // 创建 PlanAndSolve 流程所需的智能体（演示）
-         ReActAgent plannerAgent = createPlannerAgent(llmClient);
-         ReActAgent executorAgent = createExecutorAgent(llmClient);
-         // 创建 PlanAndSolve 流程主控智能体（演示）
-         PlanAndSolve planAndSolveMaster = createPlanAndSolveMaster(llmClient);
-         
         
         // 4. 注册编码需求的智能体
         framework.registerAgent("requirement_agent", requirementAgent);
         framework.registerAgent("restricted_requirement_agent", restrictedRequirementAgent);
         framework.registerAgent("code_agent", codeAgent);
         framework.registerAgent("devops_master", masterAgent);
+        
+        System.out.println("✅ 所有智能体注册完成\n");
+    }
+     /**
+     * 以下是演示 PlanAndSolve 流程所需要的智能体
+     */
+    private void initializePlanAndSolveAgents() {
+        
+        initializeMCPTools();
+        
+        LLMClient llmClient = llmClientService.getLLMClient();
+        
+         // 创建 PlanAndSolve 流程所需的智能体（演示）
+         ReActAgent plannerAgent = createPlannerAgent(llmClient);
+         ReActAgent executorAgent = createExecutorAgent(llmClient);
+         // 创建 PlanAndSolve 流程主控智能体（演示）
+         PlanAndSolve planAndSolveMaster = createPlanAndSolveMaster(llmClient);
+         
 
-        // 5.下面是演示 PlanAndSolve 流程所需要的智能体
+        // PlanAndSolve 流程所需要的智能体
         framework.registerAgent("planner_agent", plannerAgent);
         framework.registerAgent("executor_agent", executorAgent);
         framework.registerAgent("plan_and_solve_master", planAndSolveMaster);
         
         System.out.println("✅ 所有智能体注册完成\n");
     }
+    
     
     /**
      * 初始化 MCP 工具

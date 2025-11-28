@@ -10,7 +10,6 @@ import framework.model.AgentResponse;
 /**
  * Spring Boot 应用启动类（DevOps业务）
  * 
- * 职责：
  * - 启动 Spring Boot 应用
  * - 初始化业务逻辑
  */
@@ -18,7 +17,7 @@ import framework.model.AgentResponse;
 public class Application implements CommandLineRunner {
     
     @Autowired
-    private DevOpsOrchestrationService orchestrationService;
+    private DevOpsOrchestrationService devOpsOrchestrationService;
     
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -45,7 +44,7 @@ public class Application implements CommandLineRunner {
         if ("mcp".equalsIgnoreCase(mode)) {
             // 执行带 MCP 工具调用的流程（ReAct 模式）
             System.out.println("🔧 使用 MCP 工具模式（ReAct 模式）\n");
-            response = orchestrationService.executeDevOpsWorkflowWithMCP(requirementId, environment);
+            response = devOpsOrchestrationService.executeDevOpsWorkflowWithMCP(requirementId, environment);
         } else if ("plan".equalsIgnoreCase(mode)) {
             // 执行 PlanAndSolve 流程（规划-执行模式）
             System.out.println("📋 使用 PlanAndSolve 流程模式\n");
@@ -62,14 +61,14 @@ public class Application implements CommandLineRunner {
                 requirementId
             );
             
-            response = orchestrationService.executeTaskWithPlanAndSolve(taskDescription);
+            response = devOpsOrchestrationService.executeTaskWithPlanAndSolve(taskDescription);
         } else {
             // 执行普通流程（ReAct 模式）
             System.out.println("🔄 使用 ReAct 模式（边推理边执行）\n");
-            response = orchestrationService.executeDevOpsWorkflow(requirementId, environment);
+            response = devOpsOrchestrationService.executeDevOpsWorkflow(requirementId, environment);
         }
         
-        orchestrationService.printResult(response);
+        devOpsOrchestrationService.printResult(response);
     }
 }
 
